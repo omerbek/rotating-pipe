@@ -6,6 +6,15 @@ const mint = '#9ef4dc';
 const amber = '#ffcb7d';
 const ink = '#152129';
 const duration = 8;
+const controls = [...document.querySelectorAll('#settings input')];
+const settings = Object.fromEntries(controls.map(input => [
+  input.id, input.type === 'number' ? Number(input.value) : input.value
+]));
+controls.forEach(input => input.addEventListener('input', () => {
+  if (input.type === 'number' && (input.value === '' || !input.validity.valid)) return;
+  settings[input.id] = input.type === 'number' ? input.valueAsNumber : input.value;
+  draw();
+}));
 
 function rect(x, y, w, h, color) {
   ctx.fillStyle = color;
@@ -24,13 +33,13 @@ const range = length => Array.from({length}, (_, index) => index);
 
 function render(t) {
   const project = ([x, y, z]) => {
-    const angle = t * Math.PI / 4;
+    const angle = t * Math.PI * settings.rotations / 4;
     const depth = z * Math.cos(angle) - x * Math.sin(angle);
     const scale = 275 / (300 + depth);
     return [360 + (x * Math.cos(angle) + z * Math.sin(angle)) * scale, 204 + y * scale];
   };
-  const ring = z => range(25).map(i => [72 * Math.cos(i * Math.PI / 12), 72 * Math.sin(i * Math.PI / 12), z]);
-  const rings = [ring(-75), ring(75)];
+  const ring = z => range(25).map(i => [settings.radius * Math.cos(i * Math.PI / 12), settings.radius * Math.sin(i * Math.PI / 12), z]);
+  const rings = [ring(-settings.length / 2), ring(settings.length / 2)];
   rings.forEach(points => line(points.map(project)));
   range(8).forEach(i => line(rings.map(points => project(points[i * 3])), amber, 2));
 }
@@ -73,6 +82,13 @@ play.addEventListener('click', () => {
 seek.addEventListener('input', () => {
   position = Number(seek.value);
   draw();
+});
+
+document.querySelector('#save').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'rotating-pipe.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 });
 
 draw();
